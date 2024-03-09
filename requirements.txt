@@ -1,0 +1,4 @@
+cython
+tensorflow==2.10
+madmom==0.16.1
+mir_eval
