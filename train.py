@@ -54,13 +54,22 @@ model.compile(
 # Define callbacks
 reduce_lr = ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=10, min_lr=1e-6)
 early_stopping = EarlyStopping(monitor="val_loss", patience=50)
-model_checkpoint = ModelCheckpoint(
-    "models/beat_tracker_{val_accuracy:.4f}",
-    monitor="val_accuracy",
-    mode="max",
-    save_best_only=False,
-    save_format="tf",
-)
+if label_type == "beats":
+    model_checkpoint = ModelCheckpoint(
+        "models/beat_tracker_{val_accuracy:.4f}",
+        monitor="val_accuracy",
+        mode="max",
+        save_best_only=False,
+        save_format="tf",
+    )
+elif label_type == "downbeats":
+    model_checkpoint = ModelCheckpoint(
+        "models/downbeat_tracker_{val_accuracy:.4f}",
+        monitor="val_accuracy",
+        mode="max",
+        save_best_only=False,
+        save_format="tf",
+    )
 callbacks = [reduce_lr, early_stopping, model_checkpoint]
 
 if logging:
