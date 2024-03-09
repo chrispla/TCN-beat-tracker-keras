@@ -13,11 +13,11 @@ from tensorflow.keras.layers import (
 )
 
 
-class TCNLayer(Model):
+class DilatedConv(Model):
     def __init__(
         self, inputs, outputs, dilation, kernel_size=5, padding=4, stride=1, dropout=0.1
     ):
-        super(TCNLayer, self).__init__()
+        super(DilatedConv, self).__init__()
 
         self.conv1 = Conv1D(
             outputs,
@@ -52,9 +52,9 @@ class TCNLayer(Model):
         return y
 
 
-class fullTCN(Model):
+class TCN(Model):
     def __init__(self, inputs, channels, kernel_size=5, dropout=0.1):
-        super(fullTCN, self).__init__()
+        super(TCN, self).__init__()
 
         self.model_layers = []
         n_levels = len(channels)
@@ -66,7 +66,7 @@ class fullTCN(Model):
             n_channels_out = channels[i]
 
             self.model_layers.append(
-                TCNLayer(
+                DilatedConv(
                     n_channels_in,
                     n_channels_out,
                     dilation,
@@ -83,9 +83,9 @@ class fullTCN(Model):
         return x
 
 
-class BeatTrackingTCN(Model):
+class BeatTracker(Model):
     def __init__(self, channels=16, kernel_size=5, dropout=0.1):
-        super(BeatTrackingTCN, self).__init__()
+        super(BeatTracker, self).__init__()
 
         self.convblock1 = [
             ZeroPadding2D(padding=((1, 1), (0, 0))),
@@ -119,7 +119,7 @@ class BeatTrackingTCN(Model):
             Dropout(dropout),
         ]
 
-        self.tcn = fullTCN(channels, [channels] * 11, kernel_size, dropout)
+        self.tcn = TCN(channels, [channels] * 11, kernel_size, dropout)
 
         self.out = Conv1D(1, 1)
 
