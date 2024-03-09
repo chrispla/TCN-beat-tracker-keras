@@ -36,7 +36,7 @@ class Ballroom:
                 for line in f:
                     beat_time, beat_index = line.strip().split()
                     beats.append(float(beat_time))
-                    if beat_index == 1:
+                    if beat_index == "1":
                         downbeats.append(float(beat_time))
             self.beat_times[basename] = np.array(beats)
             self.downbeat_times[basename] = np.array(downbeats)
@@ -54,21 +54,33 @@ class Ballroom:
             beat_indices = (beat_times * self.sr // self.hop).astype(int)
             downbeat_indices = (downbeat_times * self.sr // self.hop).astype(int)
 
-            try:
-                beat_vector[beat_indices] = 1
-            except IndexError:
-                pass
-            try:
-                downbeat_vector[downbeat_indices] = 1
-            except IndexError:
-                pass
-
-            beat_vector = np.convolve(
-                beat_vector, np.array([0.25, 0.5, 1, 0.5, 0.25]), mode="same"
-            )
-            downbeat_vector = np.convolve(
-                downbeat_vector, np.array([0.25, 0.5, 1, 0.5, 0.25]), mode="same"
-            )
+            for i in beat_indices:
+                try:
+                    beat_vector[i] = 1
+                    # surround with 0.5s
+                    if i < len(beat_vector) - 1:
+                        beat_vector[i + 1] = 0.5
+                    if i < len(beat_vector) - 2:
+                        beat_vector[i + 2] = 0.5
+                    if i > 1:
+                        beat_vector[i - 1] = 0.5
+                    if i > 2:
+                        beat_vector[i - 2] = 0.5
+                except IndexError:
+                    pass
+            for i in downbeat_indices:
+                try:
+                    downbeat_vector[i] = 1
+                    if i < len(downbeat_vector) - 1:
+                        downbeat_vector[i + 1] = 0.5
+                    if i < len(downbeat_vector) - 2:
+                        downbeat_vector[i + 2] = 0.5
+                    if i > 1:
+                        downbeat_vector[i - 1] = 0.5
+                    if i > 2:
+                        downbeat_vector[i - 2] = 0.5
+                except IndexError:
+                    pass
 
             self.beat_vectors[basename] = beat_vector
             self.downbeat_vectors[basename] = downbeat_vector
