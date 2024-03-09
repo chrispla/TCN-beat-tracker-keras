@@ -13,7 +13,7 @@ from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.optimizers import Adam
 
 from dataset import Ballroom
-from model import BeatTrackingTCN
+from model import BeatTracker
 
 parser = argparse.ArgumentParser(description="Train a beat/downbeat tracking model.")
 parser.add_argument(
@@ -41,7 +41,7 @@ label_type = args.type
 eager = True if args.eager else False
 
 # Define the model
-model = BeatTrackingTCN()
+model = BeatTracker()
 
 # Compile the model
 model.compile(
