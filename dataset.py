@@ -7,14 +7,22 @@ import tensorflow as tf
 
 class Ballroom:
     def __init__(
-        self, audio_dir, annotation_dir, sr=44100, hop=441, label_type="beats"
+        self,
+        audio_dir,
+        annotation_dir,
+        spectrogram_dir,
+        sr=44100,
+        hop=441,
+        label_type="beats",
     ):
         self.audio_dir = audio_dir
         self.annotation_dir = annotation_dir
+        self.spectrogram_dir = spectrogram_dir
         self.sr = sr
         self.hop = hop
         self.min_duration = 29.35
         self.min_duration_samples = int(self.min_duration * self.sr)
+        self.min_duration_mel_frames = int(self.min_duration_samples / self.hop)
         self.label_type = label_type
 
         with open(Path(self.audio_dir) / "allBallroomFiles", "r") as f:
@@ -86,12 +94,16 @@ class Ballroom:
             self.downbeat_vectors[basename] = downbeat_vector
 
     def load_mel(self, basename):
-        audio_path = self.audio_files[basename]
-        audio = librosa.load(audio_path, sr=self.sr)[0]
-        audio = audio[: self.min_duration_samples]
-        mel = librosa.feature.melspectrogram(
-            y=audio, sr=self.sr, hop_length=self.hop, n_mels=81, n_fft=2048
-        )
+        spectrogram_path = Path(self.spectrogram_dir) / (basename + ".npy")
+        if not spectrogram_path.exists():
+            audio_path = self.audio_files[basename]
+            audio = librosa.load(audio_path, sr=self.sr)[0]
+            audio = audio[: self.min_duration_samples]
+            mel = librosa.feature.melspectrogram(
+                y=audio, sr=self.sr, hop_length=self.hop, n_mels=81, n_fft=2048
+            )
+            np.save(spectrogram_path, mel)
+        mel = np.load(spectrogram_path)
         mel = mel[:, : int(self.min_duration_samples / self.hop)].T
 
         mel = tf.convert_to_tensor(mel)
