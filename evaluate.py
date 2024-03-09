@@ -1,15 +1,15 @@
 import argparse
 import os
+from pathlib import Path
 
+import mir_eval
 import numpy as np
 from tensorflow.keras.models import load_model
 
 from dataset import Ballroom
+from utils import process_comparands
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-import matplotlib.pyplot as plt
-
-from metrics import f1_score
 
 parser = argparse.ArgumentParser(description="Evaluate model")
 parser.add_argument("--name", "-n", type=str, required=False, help="model name")
@@ -19,10 +19,9 @@ parser.add_argument(
 args = parser.parse_args()
 label_type = args.type
 
-from pathlib import Path
 
 if not args.name:
-    # get the model with the highest validation accuracy (split("_")[-1][-3])
+    # get the model with the highest validation accuracy
     if label_type == "beats":
         models = [
             x
@@ -37,7 +36,7 @@ if not args.name:
         ]
     else:
         raise ValueError("Invalid model type, needs to be 'beats' or 'downbeats'.")
-    models.sort(key=lambda x: float(x.stem.split("_")[-1][:-3]))
+    models.sort(key=lambda x: float(x.stem.split("_")[-1]))
     try:
         model_dir = models[-1]
     except IndexError:
@@ -54,6 +53,7 @@ model = load_model(model_dir)  # replace with your model path
 ballroom = Ballroom(
     audio_dir="data/ballroom/audio",
     annotation_dir="data/ballroom/annotations",
+    spectrogram_dir="data/ballroom/spectrograms",
     label_type=label_type,
 )
 train_dataset, valid_dataset, test_dataset = ballroom.get_datasets()
@@ -61,12 +61,29 @@ train_dataset, valid_dataset, test_dataset = ballroom.get_datasets()
 # Use the model for prediction
 predictions = model.predict(test_dataset)
 
-f1_scores = []
-for truth, pred in zip(test_dataset, predictions):
-    f1_scores.append(f1_score(truth[1][0], np.squeeze(pred)))
+metrics = {"f1": [], "CMLc": [], "CMLt": [], "AMLc": [], "AMLt": [], "D": []}
 
-print("Mean F1 score:", sum(f1_scores) / len(f1_scores))
-for truth, pred in zip(test_dataset, predictions):
-    f1_scores.append(f1_score(np.squeeze(truth[1]), np.squeeze(pred)))
+for y_truth, y_pred in zip(test_dataset, predictions):
 
-print("Mean F1 score:", sum(f1_scores) / len(f1_scores))
+    # clean up
+    truth = y_truth[1][0]
+    pred = np.squeeze(y_pred)
+
+    # process
+    true_times, pred_times = process_comparands(
+        truth, pred, sr=44100, hop=441, label_type=label_type
+    )
+
+    # metrics
+    metrics["f1"].append(mir_eval.beat.f_measure(true_times, pred_times))
+    CMLc, CMLt, AMLc, AMLt = mir_eval.beat.continuity(true_times, pred_times)
+    metrics["CMLc"].append(CMLc)
+    metrics["CMLt"].append(CMLt)
+    metrics["AMLc"].append(AMLc)
+    metrics["AMLt"].append(AMLt)
+    metrics["D"].append(mir_eval.beat.information_gain(true_times, pred_times))
+
+# average metrics
+for key in metrics:
+    metrics[key] = np.mean(metrics[key])
+    print(f"{key: <4}: {metrics[key]:.3f}")
