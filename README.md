@@ -1,5 +1,5 @@
 # TCN-beat-tracker
-PyTorch implementation of [Matthew E. P. Davies; Sebastian Böck. "Temporal convolutional networks for musical audio beat tracking". 2019 27th European Signal Processing Conference (EUSIPCO)](https://ieeexplore.ieee.org/document/8902578) for "Music Informatics" course at Queen Mary University of London.
+Keras implementation of [Matthew E. P. Davies; Sebastian Böck. "Temporal convolutional networks for musical audio beat tracking". 2019 27th European Signal Processing Conference (EUSIPCO)](https://ieeexplore.ieee.org/document/8902578) for "Music Informatics" course at Queen Mary University of London.
 
 ### Installation
 You need to create a python >3.9 environment (e.g. with conda) and install the requirements:
