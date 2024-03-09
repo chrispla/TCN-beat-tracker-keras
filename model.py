@@ -1,3 +1,5 @@
+"""Keras CNN + TCN model for beat/downbeat tracking (single-task)."""
+
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.initializers import HeNormal
@@ -9,28 +11,6 @@ from tensorflow.keras.layers import (
     MaxPooling2D,
     ZeroPadding2D,
 )
-
-
-def compute_mel_spectrogram(waveform, sample_rate, n_fft, hop, mel):
-    # Compute STFT
-    stft = tf.signal.stft(waveform, frame_length=n_fft, frame_step=hop)
-
-    # Compute power spectrogram
-    spectrogram = tf.abs(stft) ** 2
-
-    # Build Mel filterbank
-    mel_weights = tf.signal.linear_to_mel_weight_matrix(
-        num_mel_bins=mel,
-        num_spectrogram_bins=spectrogram.shape[-1],
-        sample_rate=sample_rate,
-        lower_edge_hertz=0.0,
-        upper_edge_hertz=sample_rate / 2.0,
-    )
-
-    # Apply Mel filterbank
-    mel_spectrogram = tf.tensordot(spectrogram, mel_weights, 1)
-
-    return mel_spectrogram
 
 
 class TCNLayer(Model):
@@ -145,16 +125,12 @@ class BeatTrackingTCN(Model):
 
     def call(self, spec):
 
-        print("Mel shape:", spec.shape)
         for layer in self.convblock1:
             spec = layer(spec)
-        print("Conv1:", spec.shape)
         for layer in self.convblock2:
             spec = layer(spec)
-        print("Conv2:", spec.shape)
         for layer in self.convblock3:
             spec = layer(spec)
-        print("Conv3:", spec.shape)
 
         pre_tcn = tf.squeeze(spec, axis=-2)
         tcn_out = self.tcn(pre_tcn)
