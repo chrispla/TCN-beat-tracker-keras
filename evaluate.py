@@ -1,3 +1,13 @@
+"""Evaluation script for beat/downbeat tracking models, using Keras.
+
+examples:
+`python evaluate.py -t beats`
+where `-t` specifies the type of model to evaluate (either "beats" or "downbeats"),
+and takes the model with the highest validation accuracy in the models/ directory.
+`python evaluate.py -t beats -n beat_tracker_0.1234`
+where `-n` specifies the name of the model to evaluate.
+"""
+
 import argparse
 import os
 from pathlib import Path
@@ -69,7 +79,7 @@ for y_truth, y_pred in zip(test_dataset, predictions):
     truth = y_truth[1][0]
     pred = np.squeeze(y_pred)
 
-    # process
+    # process (vector to times, and DBN for "peak picking" for preds)
     true_times, pred_times = process_comparands(
         truth, pred, sr=44100, hop=441, label_type=label_type
     )
