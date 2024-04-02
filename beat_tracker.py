@@ -1,6 +1,7 @@
 """Compute beats and downbeats from an audio file."""
 
 import librosa
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 
@@ -15,23 +16,32 @@ def beatTracker(inputFile):
     mel = librosa.feature.melspectrogram(
         y=y, sr=sr, n_mels=81, n_fft=2048, hop_length=441
     )
-    print(mel.shape)
-    # trim to 2935
-    mel = mel[:, :2935].T
-    mel = tf.expand_dims(tf.convert_to_tensor(mel), axis=0)
-    mel = tf.expand_dims(mel, axis=-1)
+    all_beat_times = []
+    all_downbeat_times = []
+    for tdim in range(0, mel.shape[1], 2935):
+        # trim to 2935 or pad with zeros
+        if mel.shape[1] < 2935:
+            mel = np.pad(mel, ((0, 0), (0, 2935 - mel.shape[1])))
+        mel = mel[:, :2935].T
+        mel = tf.expand_dims(tf.convert_to_tensor(mel), axis=0)
+        mel = tf.expand_dims(mel, axis=-1)
 
-    # compute beats
-    beat_model = load_model("models/beat_tracker_0.9029")
-    downbeat_model = load_model("models/downbeat_tracker_0.9709")
+        # compute beats
+        beat_model = load_model("models/beat_tracker_0.9029")
+        downbeat_model = load_model("models/downbeat_tracker_0.9709")
 
-    beat_activations = tf.squeeze(beat_model.predict(mel))
-    print(">>>>>>>>>>>>>>>", beat_activations.shape)
-    beat_times = output_to_beat_times(beat_activations, 44100, 441, "beats")
-    downbeat_activations = tf.squeeze(downbeat_model.predict(mel))
-    downbeat_times = output_to_beat_times(downbeat_activations, 44100, 441, "downbeats")
+        beat_activations = tf.squeeze(beat_model.predict(mel))
 
-    return beat_times, downbeat_times
+        beat_times = output_to_beat_times(beat_activations.numpy(), 44100, 441, "beats")
+        downbeat_activations = tf.squeeze(downbeat_model.predict(mel))
+        downbeat_times = output_to_beat_times(
+            downbeat_activations.numpy(), 44100, 441, "downbeats"
+        )
+
+        all_beat_times.extend(beat_times)
+        all_downbeat_times.extend(downbeat_times)
+
+    return all_beat_times, all_downbeat_times
 
 
 if __name__ == "__main__":
@@ -43,6 +53,4 @@ if __name__ == "__main__":
 
     beat_times, downbeat_times = beatTracker(args.i)
     print("Beat times:", beat_times)
-    print("Downbeat times:", downbeat_times)
-    print("Downbeat times:", downbeat_times)
     print("Downbeat times:", downbeat_times)
